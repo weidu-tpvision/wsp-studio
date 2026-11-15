@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WSP Studio — General-Purpose Weight-Space Programming</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #131a26;
+      --border: #243044;
+      --text: #e6edf7;
+      --muted: #8ea0b8;
+      --accent: #60a5fa;
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f1520;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    header span { color: var(--muted); font-size: 13px; }
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: calc(100vh - 57px);
+    }
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    select, input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0b0f17;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+    }
+    button {
+      padding: 10px 14px;
+      background: var(--accent);
+      color: #08101c;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .main { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .card .k { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .card .v { font-size: 20px; font-weight: 600; margin-top: 4px; }
+    .turns { display: flex; flex-direction: column; gap: 10px; }
+    .turn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .turn.best { border-color: var(--green); }
+    .turn-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #1d283a;
+      color: var(--accent);
+    }
+    .pill.best { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    pre {
+      background: #090d14;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 8px 0 0;
+      white-space: pre-wrap;
+    }
+    .error-box {
+      background: rgba(248, 113, 113, 0.12);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WSP Studio</h1>
+    <span>General-Purpose Weight-Space Programming (PyTorch · FunctionGemma · Qwen · Gemini · AWS Bedrock)</span>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <label>Student Task</label>
+        <select id="task_id">
+          <option value="cnn_demo">Small Pattern CNN (PyTorch)</option>
+          <option value="functiongemma_tools">FunctionGemma 270M (Tool Routing)</option>
+          <option value="qwen_math">Qwen3.5-0.8B (Math Reasoning)</option>
+        </select>
+      </div>
+      <div>
+        <label>Custom Python Task File (optional, overrides above)</label>
+        <input id="task_file" placeholder="/path/to/my_cnn_task.py" />
+      </div>
+      <div>
+        <label>Writer LLM Provider</label>
+        <select id="writer_provider" onchange="updateProviderFields()">
+          <option value="gemini">Google Gemini (API Key)</option>
+          <option value="bedrock">AWS Bedrock (Converse API)</option>
+          <option value="mock">Mock Writer (Offline Test)</option>
+        </select>
+      </div>
+      <div>
+        <label>Writer Model ID</label>
+        <input id="writer_model" value="gemini-2.5-pro" />
+      </div>
+      <div id="gemini_key_wrap">
+        <label>GEMINI_API_KEY (optional if set in env)</label>
+        <input id="gemini_api_key" type="password" placeholder="AIza..." />
+      </div>
+      <div id="bedrock_region_wrap" style="display:none">
+        <label>AWS Region</label>
+        <input id="aws_region" value="us-east-1" />
+      </div>
+      <div>
+        <label>HF_TOKEN (needed for gated FunctionGemma)</label>
+        <input id="hf_token" type="password" placeholder="hf_..." />
+      </div>
+      <div>
+        <label>Forward-Pass Budget (max_passes)</label>
+        <input id="max_passes" type="number" value="15" min="1" max="100" />
+      </div>
+      <button id="start_btn" onclick="startRun()">Start Weight-Space Optimization</button>
+    </aside>
+
+    <main class="main">
+      <div class="cards">
+        <div class="card"><div class="k">Status</div><div class="v" id="st_status">Idle</div></div>
+        <div class="card"><div class="k">Passes Left</div><div class="v" id="st_passes">—</div></div>
+        <div class="card"><div class="k">Holdout (Before → After)</div><div class="v" id="st_holdout">—</div></div>
+        <div class="card"><div class="k">Valset (Before → After)</div><div class="v" id="st_val">—</div></div>
+      </div>
+      <div id="error_box" class="error-box" style="display:none"></div>
+      <div id="manifest_box" class="turn" style="display:none">
+        <div class="turn-head"><strong>Exported Patch (manifest.json + edit.npz)</strong></div>
+        <pre id="manifest_pre"></pre>
+      </div>
+      <div class="turns" id="turns"></div>
+    </main>
+  </div>
+
+  <script>
+    let activeRunId = null;
+    let pollTimer = null;
+
+    function updateProviderFields() {
+      const p = document.getElementById("writer_provider").value;
+      document.getElementById("gemini_key_wrap").style.display = p === "gemini" ? "block" : "none";
+      document.getElementById("bedrock_region_wrap").style.display = p === "bedrock" ? "block" : "none";
+      if (p === "gemini") document.getElementById("writer_model").value = "gemini-2.5-pro";
+      if (p === "bedrock") document.getElementById("writer_model").value = "us.anthropic.claude-sonnet-4-5-20250929-v1:0";
+      if (p === "mock") document.getElementById("writer_model").value = "mock";
+    }
+
+    async function startRun() {
+      const btn = document.getElementById("start_btn");
+      btn.disabled = true;
+      document.getElementById("error_box").style.display = "none";
+      document.getElementById("manifest_box").style.display = "none";
+      document.getElementById("turns").innerHTML = "";
+
+      const payload = {
+        task_id: document.getElementById("task_id").value,
+        task_file: document.getElementById("task_file").value.trim() || null,
+        writer_provider: document.getElementById("writer_provider").value,
+        writer_model: document.getElementById("writer_model").value.trim() || null,
+        gemini_api_key: document.getElementById("gemini_api_key").value.trim() || null,
+        aws_region: document.getElementById("aws_region").value.trim() || null,
+        hf_token: document.getElementById("hf_token").value.trim() || null,
+        max_passes: parseInt(document.getElementById("max_passes").value, 10) || 15
+      };
+
+      const resp = await fetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      activeRunId = data.run_id;
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(pollRun, 1000);
+      pollRun();
+    }
+
+    async function pollRun() {
+      if (!activeRunId) return;
+      const resp = await fetch(`/api/runs/${activeRunId}`);
+      const r = await resp.json();
+
+      document.getElementById("st_status").textContent = r.status;
+      document.getElementById("st_passes").textContent = `${r.passes_left} / ${r.max_passes}`;
+      if (r.holdout_before !== undefined) {
+        document.getElementById("st_holdout").textContent = `${(r.holdout_before * 100).toFixed(1)}% → ${(r.holdout_after * 100).toFixed(1)}%`;
+      }
+      if (r.val_before !== undefined) {
+        document.getElementById("st_val").textContent = `${(r.val_before * 100).toFixed(1)}% → ${(r.val_after * 100).toFixed(1)}%`;
+      }
+      if (r.error) {
+        const eb = document.getElementById("error_box");
+        eb.textContent = r.error;
+        eb.style.display = "block";
+      }
+      if (r.manifest) {
+        document.getElementById("manifest_box").style.display = "block";
+        document.getElementById("manifest_pre").textContent = JSON.stringify(r.manifest, null, 2);
+      }
+
+      const turnsEl = document.getElementById("turns");
+      turnsEl.innerHTML = "";
+      for (const t of (r.turns || [])) {
+        const div = document.createElement("div");
+        div.className = "turn" + (t.is_best ? " best" : "");
+        const bestTag = t.is_best ? `<span class="pill best">NEW BEST</span>` : "";
+        const hoTag = t.holdout_score !== null && t.holdout_score !== undefined ? ` · holdout=${(t.holdout_score * 100).toFixed(1)}%` : "";
+        div.innerHTML = `
+          <div class="turn-head">
+            <span><strong>Turn ${t.turn}</strong> · passes_left=${t.passes_left}${hoTag}</span>
+            <span>${bestTag} <span class="pill">${t.action_type}</span></span>
+          </div>
+          <div><strong>Reason:</strong> ${escapeHtml(t.reason)}</div>
+          <pre><strong>Action:</strong>\n${escapeHtml(t.action_payload)}</pre>
+          <pre><strong>Observation:</strong>\n${escapeHtml(t.observation)}</pre>
+        `;
+        turnsEl.appendChild(div);
+      }
+
+      if (r.status === "completed" || r.status === "error") {
+        clearInterval(pollTimer);
+        document.getElementById("start_btn").disabled = false;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
