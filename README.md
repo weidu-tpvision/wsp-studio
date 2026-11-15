@@ -2,6 +2,8 @@
 
 A modular, model-agnostic Weight-Space Programming (WSP) harness inspired by MIT CSAIL's *Sparks of Weight-Space Programming* and Cmpnd's `dspy-wsp`.
 
+> 📖 **Concept & Deep Dive:** See [docs/weight_space_programming_explained.md](docs/weight_space_programming_explained.md) for a step-by-step explanation of Weight-Space Programming, the MIT CSAIL research, and `dspy-wsp`.
+
 ## Features
 - **Model-Agnostic Backends (`wsp/backends/`):**
   - `PyTorchBackend`: Any `torch.nn.Module` (ResNets, CNNs, MLPs) with generic forward-hook activation capture.
